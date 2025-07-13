@@ -24,14 +24,14 @@ pub mod sol_vote {
 
 #[account]
 #[derive(InitSpace)]
-pub struct Poll {
-    #[max_len(100)]
+pub struct PollData {
+    #[max_len(100)] // 100 characters
     pub title: String,
     #[max_len(300)]
     pub description: String,
-    #[max_len(5, 30)] // 5 options with 20 bytes each
+    #[max_len(5, 30)] // 5 options with 30 characters each
     pub options: Vec<String>,
-    #[max_len(5)]
+    #[max_len(5)] // initial -> [0,0,0,0,0]
     pub votes: Vec<u64>,
     pub author: Pubkey,
     pub created_at: i64,
@@ -39,16 +39,26 @@ pub struct Poll {
 }
 
 #[account]
-pub struct Vote {
-    pub poll_id: u64,
+#[derive(InitSpace)]
+pub struct VoteData {
+    pub poll: Pubkey,
     pub user: Pubkey,
     pub option: u64,
 }
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, seeds=[b"create_poll", user.key().as_ref()], bump, payer=user, space=8+Poll::INIT_SPACE)]
-    pub poll_account: Account<'info, Poll>,
+    #[account(init, seeds=[b"create_poll", user.key().as_ref()], bump, payer=user, space=8+PollData::INIT_SPACE)]
+    pub poll_account: Account<'info, PollData>,
     #[account(mut)] pub user: Signer<'info>,
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct Vote<'info> {
+    #[account(init, seeds=[b"user_vote", user.key().as_ref(), poll_account.key().as_ref()], bump, payer=user, space=8+VoteData::INIT_SPACE)]
+    pub user_vote: Account<'info, VoteData>,
+    #[account(mut)] pub user: Signer<'info>,
+    #[account(mut)] pub poll_account: Account<'info, PollData>,
     pub system_program: Program<'info, System>
 }
